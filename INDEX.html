@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拿破崙人生模擬地圖 - 完整版</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: "Microsoft JhengHei", sans-serif; }
+        #map { width: 100vw; height: 90vh; display: none; }
+        .info-box {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+            z-index: 1000;
+            font-size: 14px;
+            display: none;
+        }
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 400;
+            display: none;
+        }
+        .control-btns {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            display: none;
+            gap: 10px;
+            align-items: center;
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .control-btn:hover { background: #34495e; }
+        .control-btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+        .progress-display {
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+        }
+        .decision-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+        }
+        .decision-btn {
+            margin: 10px 5px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .decision-btn.option1 { background: #27ae60; color: white; }
+        .decision-btn.option2 { background: #e74c3c; color: white; }
+        .decision-btn.option3 { background: #f39c12; color: white; }
+        .event-log-box {
+            position: absolute;
+            top: 120px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 900;
+            font-size: 12px;
+            display: none;
+        }
+        .event-log-box h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+        }
+        .search-box {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 8px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+        .filter-btns {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 3px 8px;
+            border: 1px solid #2c3e50;
+            border-radius: 4px;
+            background: white;
+            color: #2c3e50;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .filter-btn.active {
+            background: #2c3e50;
+            color: white;
+        }
+        .event-log-item {
+            margin: 3px 0;
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .event-log-item:hover {
+            background-color: #f5f5f5;
+        }
+        .event-log-item.active {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        .event-log-item.hidden {
+            display: none;
+        }
+        .event-tag {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .tag-battle { background: red; }
+        .tag-politics { background: blue; }
+        .tag-birth { background: green; }
+        .tag-death { background: green; }
+        .tag-decision { background: orange; }
+        .report-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+            z-index: 2100;
+            display: none;
+            max-width: 500px;
+            width: 90%;
+            font-size: 13px;
+        }
+        .report-modal h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            text-align: center;
+        }
+        .report-modal p {
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+        .report-modal .close-btn {
+            display: block;
+            margin: 20px auto 0;
+            padding: 6px 15px;
+            border: none;
+            border-radius: 4px;
+            background: #2c3e50;
+            color: white;
+            cursor: pointer;
+        }
+        .decision-record-item {
+            padding: 4px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .score-section {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .score-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .score-reason {
+            font-size: 12px;
+            color: #555;
+        }
+        .impact-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        .impact-positive { background: #d5f5e3; color: #27ae60; }
+        .impact-negative { background: #fadbd8; color: #e74c3c; }
+        .impact-neutral { background: #fef9e7; color: #f39c12; }
+        .manual-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .manual-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            line-height: 1.6;
+        }
+        .manual-content h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-top: 0;
+        }
+        .manual-content button {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 25px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .manual-content button:hover {
+            background: #34495e;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="manual-modal" id="manualModal">
+        <div class="manual-content">
+            <h2>拿破崙人生模擬地圖 使用說明</h2>
+            <ol>
+                <li><strong>啟動模擬</strong>：關閉說明書後，點擊「開始模擬」按鈕，地圖會跳轉到第一個事件地點。</li>
+                <li><strong>戰爭調度</strong>：所有關鍵戰役均提供3套軍隊使用方案，不同方案對稱霸歐洲有不同長遠影響。</li>
+                <li><strong>評分邏輯</strong>：評分不看選擇正誤，依據決策對稱霸的影響加減分，失敗獲取教訓也會獲得正向加分。</li>
+                <li><strong>事件記錄</strong>：左側列表記錄所有事件，支援年份/名稱搜尋與類型篩選，點擊可回看事件地點。</li>
+                <li><strong>模擬報告</strong>：模擬結束後生成評分報告，詳細列出每項決策的影響與分數來源。</li>
+            </ol>
+            <button id="closeManualBtn">我已瞭解，進入模擬</button>
+        </div>
+    </div>
+
+    <div class="control-btns" id="controlBtns">
+        <button class="control-btn" id="startBtn">開始模擬</button>
+        <button class="control-btn" id="pauseBtn" disabled>暫停</button>
+        <div class="progress-display" id="progressDisplay">0%</div>
+    </div>
+
+    <div class="info-box" id="infoBox">
+        <h3>拿破崙人生模擬地圖</h3>
+        <p>點擊「開始模擬」啟動，手動推進每個事件</p>
+    </div>
+
+    <div class="event-log-box" id="eventLogBox">
+        <h4>事件記錄（點擊回看）</h4>
+        <input type="text" class="search-box" id="eventSearchBox" placeholder="輸入年份/事件名稱搜尋...">
+        <div class="filter-btns">
+            <button class="filter-btn active" data-filter="all">全部事件</button>
+            <button class="filter-btn" data-filter="battle">🟥 關鍵戰役</button>
+            <button class="filter-btn" data-filter="politics">🟦 政治事件</button>
+            <button class="filter-btn" data-filter="birth,death">🟢 人生轉折</button>
+            <button class="filter-btn" data-filter="decision">🟠 決策記錄</button>
+        </div>
+        <div id="eventLogList"></div>
+    </div>
+
+    <div class="legend" id="legend">
+        <p>🟥 關鍵戰役 | 🟦 政治事件 | 🟢 人生轉折 | 🟠 決策記錄</p>
+    </div>
+
+    <div class="decision-modal" id="decisionModal">
+        <h3 id="decisionTitle">決策時刻</h3>
+        <p id="decisionDesc"></p>
+        <button class="decision-btn option1" id="option1">選擇1</button>
+        <button class="decision-btn option2" id="option2">選擇2</button>
+        <button class="decision-btn option3" id="option3">選擇3</button>
+    </div>
+
+    <div class="report-modal" id="reportModal">
+        <h3>拿破崙人生模擬報告</h3>
+        <div id="reportContent"></div>
+        <button class="close-btn" id="closeReportBtn">關閉報告</button>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // 初始化地圖（世界地圖視角）
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 事件數據 - 所有戰役含3套調度方案
+        const napoleonEvents = [
+            { id: 1, year: 1769, name: "出生於科西嘉島", coords: [41.9260, 8.7370], type: "birth", desc: "拿破崙·波拿巴出生於科西嘉島的阿雅克肖，此時科西嘉剛被法國吞併。" },
+            {
+                id: 2, year: 1782, name: "科西嘉動亂", coords: [41.9260, 8.7370], type: "politics", desc: "科西嘉島反抗法國統治的動亂失敗，家族面臨迫害風險。",
+                decision: {
+                    title: "人生抉擇：是否移民海外？",
+                    desc: "動亂失敗後，你可以選擇移民英國投靠親戚，或是留在法國尋求機會，亦或加入反法武裝繼續鬥爭。",
+                    option1: "留在法國", result1: "你留在法國繼續學業，進入巴黎軍官學校，開啟軍旅起點。", impact1: 5, impactDesc1: "獲得軍校深造機會，為日後軍事崛起奠定基礎",
+                    option2: "移民英國", result2: "你移民英國，憑藉軍事天賦加入英國陸軍，日後成為殖民地將領。", impact2: -3, impactDesc2: "脫離法國政治中心，失去稱霸歐洲的核心舞台",
+                    option3: "加入反法武裝", result3: "你加入科西嘉反法游擊隊，遊擊作戰積累戰術經驗，但被法軍通緝流亡海外。", impact3: 1, impactDesc3: "積累游擊戰經驗，日後對付普魯士游擊隊時借鑑此戰法"
+                }
+            },
+            {
+                id: 3, year: 1784, name: "巴黎軍官學校深造", coords: [48.8566, 2.3522], type: "politics", desc: "15歲的拿破崙進入巴黎軍官學校，學習炮兵專業，成績優異。",
+                decision: {
+                    title: "人生第一個選擇：軍校發展方向",
+                    desc: "軍校期間，你可以選擇深耕炮兵專業、鑽研騎兵戰術，或是主攻軍事謀略理論。",
+                    option1: "深耕炮兵專業", result1: "你成為炮兵少尉，開啟軍旅生涯，積累基層軍事指揮經驗。", impact1: 5, impactDesc1: "掌握炮兵戰術核心，為後續戰役勝利積累技術優勢",
+                    option2: "鑽研騎兵戰術", result2: "你轉入騎兵部隊，練就機動作戰能力，日後在機動戰中屢建奇功。", impact2: 4, impactDesc2: "掌握騎兵機動戰術，彌補法軍機動性不足的短板",
+                    option3: "主攻軍事謀略", result3: "你專心研究戰略理論，缺乏基層指揮經驗，畢業後僅擔任參謀職務。", impact3: 2, impactDesc3: "具備頂級戰略視野，日後制定大戰略時發揮關鍵作用"
+                }
+            },
+            {
+                id: 4, year: 1793, name: "土倫戰役勝利", coords: [43.1242, 5.9280], type: "battle", desc: "拿破崙率軍擊退英國支援的保王黨，晉升為准將，開始嶄露頭角。",
+                decision: {
+                    title: "土倫戰役：軍隊調度方案",
+                    desc: "面對英軍堅固防線，你要如何調度軍隊？",
+                    option1: "集中炮兵轟擊港口，陸軍迂迴包抄", result1: "炮兵摧毀英軍艦船，陸軍順利登陸，一舉攻克土倫。", impact1: 8, impactDesc1: "展現炮兵與陸軍協同戰術，獲得法軍高層賞識",
+                    option2: "正面強攻英軍據點，消耗敵軍兵力", result2: "法軍慘勝，損失慘重但成功收復土倫，你認識到正面強攻的弊端。", impact2: 4, impactDesc2: "慘勝獲取寶貴戰役經驗，日後戰役中避免盲目強攻",
+                    option3: "圍而不攻斷絕補給，策反保王黨內部", result3: "圍困三月後策反部分保王黨軍官，兵不血刃收復土倫，聲望大增。", impact3: 6, impactDesc3: "展現「圍困+策反」雙重策略，減少兵力損耗的同時擴大政治影響力"
+                }
+            },
+            {
+                id: 5, year: 1796, name: "意大利戰役", coords: [45.4408, 12.3155], type: "battle", desc: "你被任命為意大利方面軍總司令，面對奧地利與薩丁尼亞聯軍的夾擊。",
+                decision: {
+                    title: "意大利戰役：軍隊調度方案",
+                    desc: "聯軍兵力是你軍隊的2倍，你要如何突破包圍圈？",
+                    option1: "翻越阿爾卑斯山，奇襲聯軍後方補給線", result1: "奇襲成功切斷聯軍補給，聯軍潰敗，你征服北意大利，獲得大量戰利品補充法軍。", impact1: 9, impactDesc1: "奇襲戰術經典範例，積累戰爭資源與聲望，為政變奠定基礎",
+                    option2: "固守邊境要塞，等待法國本土援軍", result2: "援軍遲遲未到，要塞被圍困數月，最終慘勝突圍，你認識到孤軍作戰的風險。", impact2: 3, impactDesc2: "慘勝獲取防禦戰經驗，日後強化補給線規劃與援軍協同機制",
+                    option3: "分化聯軍，與薩丁尼亞單獨談和", result3: "你以優厚條件勸降薩丁尼亞，孤立奧軍後各個擊破，順利征服意大利半島。", impact3: 7, impactDesc3: "運用外交手段分化敵軍，以最小代價獲得戰略勝利，展現政治軍事雙重手腕"
+                }
+            },
+            {
+                id: 6, year: 1800, name: "馬倫哥戰役", coords: [45.1375, 8.5972], type: "battle", desc: "你剛發動霧月政變掌權，奧軍入侵意大利，你親率大軍翻越阿爾卑斯山馳援。",
+                decision: {
+                    title: "馬倫哥戰役：軍隊調度方案",
+                    desc: "奧軍主力集結馬倫哥平原，你要選擇正面決戰還是分兵騷擾？",
+                    option1: "主力隱蔽待命，先派輕騎兵誘敵深入", result1: "奧軍中計進入埋伏圈，你率主力突襲，奧軍全線崩潰，簽訂停戰協定。", impact1: 10, impactDesc1: "鞏固政變後的統治權威，展現「戰場統帥+國家領袖」雙重能力",
+                    option2: "分兵三路輪番騷擾，消耗奧軍士氣", result2: "奧軍識破戰術，集中優勢兵力擊破一路，你被迫談和，僅保住北意大利控制權。", impact2: 2, impactDesc2: "認識到分兵騷擾的局限性，日後強化「集中優勢兵力」的核心戰略",
+                    option3: "夜襲奧軍營地，燒毀糧草輜重", result3: "夜襲成功燒毀奧軍補給，奧軍士氣崩潰撤退，你不戰而勝。", impact3: 8, impactDesc3: "運用夜襲摧毀敵軍後勤，以小代價獲勝，強化「後勤決定戰爭」的戰略認知"
+                }
+            },
+            {
+                id: 7, year: 1799, name: "霧月政變", coords: [48.8566, 2.3522], type: "politics", desc: "拿破崙發動政變，推翻督政府，成為法國第一執政，掌握實權。",
+                decision: {
+                    title: "政變後的選擇：權力鞏固策略",
+                    desc: "你已掌控法國實權，可選擇稱帝建國、擔任終身執政，或是聯合元老院共治。",
+                    option1: "稱帝建國", result1: "你於1804年加冕為法蘭西第一帝國皇帝，凝聚國內力量對外擴張。", impact1: 7, impactDesc1: "建立中央集權帝國，整合資源推進歐洲征服計劃",
+                    option2: "終身執政不稱帝", result2: "你拒絕稱帝，推行共和體制，獲得平民支持但貴族反對聲音強烈。", impact2: 3, impactDesc2: "穩定國內民生，但貴族勢力掣肘對外軍事行動",
+                    option3: "聯合元老院共治", result3: "你與元老院達成協議，實行二元統治，獲得貴族與平民雙重支持，穩固統治基礎。", impact3: 5, impactDesc3: "平衡各方勢力，避免內部動亂，為對外擴張創造穩定的國內環境"
+                }
+            },
+            {
+                id: 8, year: 1805, name: "奧斯特里茨戰役", coords: [48.8932, 16.9114], type: "battle", desc: "歐洲第三次反法同盟組建，你率軍東征奧地利與俄羅斯聯軍。",
+                decision: {
+                    title: "奧斯特里茨戰役：軍隊調度方案",
+                    desc: "面對俄奧聯軍優勢兵力，你要如何部署軍隊？",
+                    option1: "誘敵深入戰術高地，主力包抄敵軍側翼", result1: "贏得「三皇之戰」輝煌勝利，聯軍全線崩潰，歐洲震驚。", impact1: 10, impactDesc1: "經典戰術勝利，瓦解第三次反法同盟，霸權地位大幅提升",
+                    option2: "分兵防守各戰線，穩固陣地待機反擊", result2: "法軍防禦成功，擊退聯軍進攻但未能殲滅主力，你認識到防禦戰的局限。", impact2: 5, impactDesc2: "防禦勝利保全實力，吸取教訓後優化進攻戰術體系",
+                    option3: "集中騎兵突襲敵軍指揮部，斬首行動", result3: "騎兵突襲成功擊潰敵軍指揮系統，聯軍群龍無首潰敗，但己方騎兵損失慘重。", impact3: 7, impactDesc3: "驗證「斬首戰術」的有效性，日後戰役中優化特種突襲部隊編制"
+                }
+            },
+            {
+                id: 9, year: 1806, name: "耶拿-奧爾施泰特戰役", coords: [50.9333, 11.5833], type: "battle", desc: "普魯士加入反法同盟，你率軍閃擊普魯士，兩場戰役同時爆發。",
+                decision: {
+                    title: "耶拿戰役：軍隊調度方案",
+                    desc: "普軍主力分兩路駐守，你要親率主力攻耶拿，還是分兵支援奧爾施泰特？",
+                    option1: "親率主力猛攻耶拿普軍，速戰速決後回援", result1: "你擊潰耶拿普軍主力，回援部隊配合擊敗奧爾施泰特普軍，普魯士投降。", impact1: 11, impactDesc1: "26天滅亡普魯士，閃擊戰術達到巔峰，歐洲大陸震動",
+                    option2: "分兵兩路同時進攻，力求兩線全勝", result2: "兩路兵力均不足，耶拿戰場慘勝，奧爾施泰特戰場僵持，普軍退守東普魯士。", impact2: 4, impactDesc2: "認識到雙線作戰的風險，日後制定「集中突破，再擴大戰果」的戰略",
+                    option3: "圍攻耶拿吸引援軍，伏擊奧爾施泰特援軍", result3: "圍攻耶拿誘使奧爾施泰特普軍援軍出動，伏擊殲滅援軍後兩地普軍相繼投降。", impact3: 9, impactDesc3: "運用「圍點打援」戰術，以最小代價殲滅敵軍有生力量，優化戰場調度效率"
+                }
+            },
+            {
+                id: 10, year: 1806, name: "頒布大陸封鎖令", coords: [48.8566, 2.3522], type: "politics", desc: "英國憑藉海軍優勢對法國實施封鎖，歐洲大陸貿易受創。",
+                decision: {
+                    title: "大陸封鎖令實施決策",
+                    desc: "為反制英國，你要頒布嚴格封鎖令、靈活執行，或是聯合歐洲國家建立貿易聯盟？",
+                    option1: "靈活執行，保留中立國貿易", result1: "緩和盟友關係，法國財政收入穩定，英國經濟打擊有限。", impact1: 6, impactDesc1: "避免盟友反水，維持大陸同盟穩定性，為長遠征服儲備資源",
+                    option2: "頒布嚴格大陸封鎖令", result2: "重創英國經濟，但葡萄牙、西班牙相繼反水，你認識到強制封鎖的弊端。", impact2: 2, impactDesc2: "打擊敵對經濟，吸取教訓後調整對盟友的利益讓渡策略",
+                    option3: "建立歐洲大陸貿易聯盟，替代英國市場", result3: "聯合歐洲大陸國家建立貿易同盟，擺脫對英國的經濟依賴，封鎖效果顯著。", impact3: 8, impactDesc3: "以經濟同盟強化政治同盟，鞏固歐洲大陸霸權，從根本上削弱英國影響力"
+                }
+            },
+            {
+                id: 11, year: 1809, name: "瓦格拉姆戰役", coords: [48.2167, 16.3667], type: "battle", desc: "奧地利發動第五次反法同盟，集結大軍入侵巴伐利亞，你率軍迎戰。",
+                decision: {
+                    title: "瓦格拉姆戰役：軍隊調度方案",
+                    desc: "奧軍憑藉多瑙河天險佈防，你要強行渡河進攻，還是誘敵渡河決戰？",
+                    option1: "夜間偷渡多瑙河，繞至奧軍側後發動突襲", result1: "突襲成功切斷奧軍退路，奧軍全線崩潰，簽訂《維也納條約》，奧地利割地賠款。", impact1: 9, impactDesc1: "瓦解第五次反法同盟，法國成為中歐霸主，勢力範圍擴至多瑙河流域",
+                    option2: "築壘佯攻誘敵渡河，半渡而擊之", result2: "奧軍識破佯攻計策，反擊擊潰法軍先頭部隊，你被迫談和，僅獲得少量賠款。", impact2: 3, impactDesc2: "認識到佯攻計策的局限性，日後強化情報偵查與計策隱蔽性",
+                    option3: "調集工兵搭建浮橋，強行渡河正面決戰", result3: "浮橋搭建成功，法軍強行渡河與奧軍決戰，慘勝後迫使奧地利簽訂不平等條約。", impact3: 6, impactDesc3: "驗證工兵部隊在水戰中的關鍵作用，日後強化工兵編制與渡河裝備研發"
+                }
+            },
+            {
+                id: 12, year: 1812, name: "進軍俄羅斯", coords: [55.7558, 37.6173], type: "battle", desc: "俄羅斯違反大陸封鎖令與英國貿易，你決定率軍進攻。",
+                decision: {
+                    title: "進軍俄羅斯：軍隊調度與戰略選擇",
+                    desc: "俄軍實行焦土政策，寒冬來臨，你有三個方案可選：",
+                    option1: "立即全線撤軍，保全主力部隊", result1: "你及時撤軍避免寒冬損失，法軍主力完整保留，放棄征服俄羅斯但保住軍事根基。", impact1: 8, impactDesc1: "保存核心軍事力量，為後續萊比錫戰役積蓄實力",
+                    option2: "進攻莫斯科，佔領首都逼迫談判", result2: "攻佔空無一人的莫斯科，寒冬爆發後大軍慘敗，損失超50萬人，實力大傷。", impact2: 3, impactDesc2: "慘敗獲取遠征極寒地區教訓，日後制定嚴格的季節與補給規劃",
+                    option3: "南下烏克蘭，佔領糧食產區建立根據地", result3: "你率軍南下佔領烏克蘭糧倉，獲得充足補給，與俄軍長期對峙，消耗俄軍實力。", impact3: 5, impactDesc3: "以戰養戰獲取補給，避免寒冬損失，為日後征服俄羅斯建立前沿據點"
+                }
+            },
+            {
+                id: 13, year: 1813, name: "萊比錫戰役", coords: [51.3380, 12.3717], type: "battle", desc: "歐洲第六次反法同盟組建，聯軍集結於萊比錫與你決戰。",
+                decision: {
+                    title: "萊比錫戰役：軍隊調度方案",
+                    desc: "聯軍兵力數倍於你，你要如何突破戰局？",
+                    option1: "集中優勢兵力突破一翼，分割殲滅敵軍", result1: "你擊潰聯軍主力，瓦解第六次反法同盟，歐洲各國被迫臣服。", impact1: 12, impactDesc1: "關鍵戰略勝利，粉碎反法同盟，稱霸歐洲進程大幅推進",
+                    option2: "固守防線，等待後援部隊增援", result2: "後援遲遲未到，法軍被迫突圍，損失慘重但你認識到後勤補給的關鍵性。", impact2: 4, impactDesc2: "突圍保全部分實力，吸取教訓後建立高效後勤補給體系",
+                    option3: "派遣特種部隊燒毀聯軍補給庫，斷絕敵軍後路", result3: "特種部隊成功燒毀聯軍補給，聯軍士氣崩潰撤退，你率軍追擊擴大戰果。", impact3: 9, impactDesc3: "後勤打擊決定戰局勝利，強化「後勤優先」的戰略思維"
+                }
+            },
+            {
+                id: 14, year: 1815, name: "利尼戰役", coords: [50.5417, 4.8333], type: "battle", desc: "百日王朝期間，你率軍主動出擊，先與普魯士軍隊在利尼爆發戰役。",
+                decision: {
+                    title: "利尼戰役：軍隊調度方案",
+                    desc: "普軍構築防禦陣地，英軍威靈頓部隊正在逼近，你要速戰速決還是穩紮穩打？",
+                    option1: "集中騎兵與炮兵，全力突擊普軍中軍防線", result1: "普軍中軍崩潰，法軍獲勝，普軍殘部向瓦弗撤退，你掌握戰場主動權。", impact1: 7, impactDesc1: "前哨戰勝利提振士氣，為滑鐵盧決戰創造有利態勢",
+                    option2: "穩紮穩打逐步推進，同時防範英軍增援", result2: "戰役陷入僵持，英軍先頭部隊趕到，你被迫撤退，失去殲滅普軍的最佳時機。", impact2: 2, impactDesc2: "認識到「速戰速決」在多線作戰中的重要性，調整滑鐵盧戰役優先順序",
+                    option3: "派一部兵力佯攻普軍，主力伏擊來援英軍", result3: "佯攻牽制普軍，主力伏擊英軍先頭部隊，重創英軍後再回擊普軍，雙線獲勝。", impact3: 5, impactDesc3: "運用佯攻牽制敵軍，掌握戰場主動權，為滑鐵盧決戰減少壓力"
+                }
+            },
+            {
+                id: 15, year: 1815, name: "滑鐵盧戰役", coords: [50.4151, 4.4152], type: "battle", desc: "英普聯軍集結滑鐵盧，企圖終結你的歐洲霸權。",
+                decision: {
+                    title: "滑鐵盧戰役：最終軍隊調度",
+                    desc: "你偵查到普軍援軍即將到達，是先擊潰威靈頓的英軍，還是分兵阻擊普軍？",
+                    option1: "集中主力先擊潰威靈頓英軍", result1: "你集結主力殲滅英軍主力，回師擊潰普軍援軍，滑鐵盧大捷，歐洲無人能敵。", impact1: 15, impactDesc1: "決定性勝利，消滅最後反法力量，徹底確立歐洲霸權",
+                    option2: "分兵阻擊普軍援軍，主力對抗英軍", result2: "分兵後兵力分散，法軍全線潰敗，你認識到分兵戰術的風險極限。", impact2: 1, impactDesc2: "慘敗獲取終極戰術教訓，但若有機會重來將徹底優化兵力集中策略",
+                    option3: "誘使英軍主動進攻，設置防禦陷阱殲滅英軍", result3: "英軍中計進入防禦陷阱，你率軍殲滅英軍主力，普軍援軍見狀撤退，滑鐵盧勝利。", impact3: 12, impactDesc3: "運用防禦陷阱殲滅敵軍主力，以最小代價獲得決定性勝利"
+                }
+            },
+            { id: 16, year: 1820, name: "統治歐洲大帝國", coords: [48.8566, 2.3522], type: "politics", desc: "滑鐵盧大捷後，歐洲各國無力抵抗，你建立起橫跨歐亞的法蘭西大帝國，頒布《歐洲和平憲章》，開啟長達百年的和平時代。" }
+        ];
+
+        // DOM元素獲取
+        const manualModal = document.getElementById('manualModal');
+        const closeManualBtn = document.getElementById('closeManualBtn');
+        const controlBtns = document.getElementById('controlBtns');
+        const infoBox = document.getElementById('infoBox');
+        const eventLogBox = document.getElementById('eventLogBox');
+        const legend = document.getElementById('legend');
+        const mapEl = document.getElementById('map');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const decisionModal = document.getElementById('decisionModal');
+        const decisionTitle = document.getElementById('decisionTitle');
+        const decisionDesc = document.getElementById('decisionDesc');
+        const option1 = document.getElementById('option1');
+        const option2 = document.getElementById('option2');
+        const option3 = document.getElementById('option3');
+        const progressDisplay = document.getElementById('progressDisplay');
+        const eventLogList = document.getElementById('eventLogList');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const eventSearchBox = document.getElementById('eventSearchBox');
+        const reportModal = document.getElementById('reportModal');
+        const reportContent = document.getElementById('reportContent');
+        const closeReportBtn = document.getElementById('closeReportBtn');
+
+        // 狀態變數
+        let currentEventIndex = 0;
+        let isSimulationRunning = false;
+        let isAlternativeEnding = false;
+        let totalImpactScore = 0;
+        let decisionImpactList = [];
+        const totalEvents = napoleonEvents.length;
+        let loggedEvents = [];
+        let currentFilter = "all";
+        let decisionHistory = [];
+        let markersAdded = false;
+
+        // 關閉說明書按鈕事件
+        closeManualBtn.addEventListener('click', () => {
+            manualModal.style.display = "none";
+            controlBtns.style.display = "flex";
+            infoBox.style.display = "block";
+            eventLogBox.style.display = "block";
+            legend.style.display = "block";
+            mapEl.style.display = "block";
+        });
+
+        // 添加事件到日誌列表
+        function addToEventLog(event) {
+            loggedEvents.push(event);
+            const logItem = document.createElement('div');
+            logItem.className = `event-log-item ${event.type}`;
+            logItem.dataset.eventId = event.id;
+            logItem.dataset.eventType = event.type;
+            logItem.dataset.eventYear = event.year;
+            logItem.dataset.eventName = event.name;
+            logItem.innerHTML = `<span class="event-tag tag-${event.type}"></span>${event.year} - ${event.name}`;
+            logItem.addEventListener('click', () => {
+                map.flyTo(event.coords, 8);
+                infoBox.innerHTML = `<h3>${event.year} · ${event.name}</h3><p>${event.desc}</p>`;
+                document.querySelectorAll('.event-log-item').forEach(item => item.classList.remove('active'));
+                logItem.classList.add('active');
+            });
+            eventLogList.appendChild(logItem);
+            eventLogList.scrollTop = eventLogList.scrollHeight;
+            filterEvents(currentFilter);
+            searchEvents(eventSearchBox.value);
+        }
+
+        // 添加決策記錄
+        function addDecisionLog(year, title, choice, result, impact, impactDesc) {
+            const decisionEvent = {
+                id: `decision-${Date.now()}`, year: year, name: `決策：${title}`, type: "decision",
+                coords: map.getCenter(), desc: `選擇：${choice}<br>結果：${result}<br>影響：${impactDesc}`,
+                choice: choice, result: result, impact: impact, impactDesc: impactDesc
+            };
+            decisionHistory.push(decisionEvent);
+            decisionImpactList.push({ year: year, title: title, impact: impact, impactDesc: impactDesc });
+            totalImpactScore += impact;
+            addToEventLog(decisionEvent);
+        }
+
+        // 清空事件日誌
+        function clearEventLog() {
+            eventLogList.innerHTML = '';
+            loggedEvents = [];
+            decisionHistory = [];
+            decisionImpactList = [];
+            eventSearchBox.value = '';
+            totalImpactScore = 0;
+            isAlternativeEnding = false;
+        }
+
+        // 計算評分（核心修改：提升S+/S級難度，明確等級規則）
+        function calculateScore() {
+            const minImpact = -5;
+            const maxImpact = 100;
+            // 基礎分計算（0-60分）
+            let baseScore = Math.round(((totalImpactScore - minImpact) / (maxImpact - minImpact)) * 60);
+            baseScore = Math.max(0, Math.min(60, baseScore));
+
+            // 結局加權分（難度提升：完美結局加權不變，但需基礎分更高才能達到S+/S）
+            let endingScore = 0;
+            let endingDesc = "";
+            if (perfectEndingAchieved()) {
+                endingScore = 40; // 完美結局滿額加分
+                endingDesc = "達成「統治歐洲大帝國」完美結局，滿額結局加分（難度提升：需累積更多正向決策）";
+            } else if (isAlternativeEnding) {
+                endingScore = Math.round((totalImpactScore / maxImpact) * 15); // 架空結局加分降低（5-15分）
+                endingScore = Math.max(3, Math.min(15, endingScore));
+                endingDesc = `架空結局，依據影響分數獲得基礎加分（難度提升：加分上限降低）`;
+            } else {
+                endingScore = Math.round((totalImpactScore / maxImpact) * 8); // 歷史結局加分降低（0-8分）
+                endingScore = Math.max(0, Math.min(8, endingScore));
+                endingDesc = `歷史結局，依據影響分數獲得少量加分（難度提升：加分上限降低）`;
+            }
+
+            // 最終分數（0-100分）
+            const finalScore = Math.min(100, baseScore + endingScore);
+
+            // 等級劃分（核心難度提升：S+/S區間收緊）
+            let grade = "";
+            if (finalScore >= 95) grade = "S+（傳奇帝王）"; // 原90分→95分，難度大幅提升
+            else if (finalScore >= 85) grade = "S（歐洲霸主）"; // 原80分→85分，難度提升
+            else if (finalScore >= 70) grade = "A（軍事雄才）"; // 區間不變
+            else if (finalScore >= 60) grade = "B（合格統帥）"; // 區間不變
+            else if (finalScore >= 40) grade = "C（潛力將領）"; // 區間不變
+            else grade = "D（有待磨練）"; // 區間不變
+
+            // 評分依據
+            const scoreReason = [
+                `基礎影響分數：${baseScore}分（總影響值${totalImpactScore}，轉換為0-60分區間）`,
+                `結局加權分數：${endingScore}分（${endingDesc}）`,
+                `<strong>等級規則</strong>：95-100分(S+)、85-94分(S)、70-79分(A)、60-69分(B)、40-59分(C)、<40分(D)`
+            ];
+
+            return { finalScore: finalScore, finalGrade: grade, reasonList: scoreReason };
+        }
+
+        // 判斷完美結局（難度提升：需總影響分≥80分，原70分）
+        function perfectEndingAchieved() {
+            return totalImpactScore >= 80 && currentEventIndex >= totalEvents - 1;
+        }
+
+        // 添加地圖標記
+        function addMarkers() {
+            if (markersAdded) return;
+            napoleonEvents.forEach(event => {
+                let markerColor = event.type === "battle" ? "red" : event.type === "politics" ? "blue" : event.type === "decision" ? "orange" : "green";
+                const markerIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="width: 15px; height: 15px; background: ${markerColor}; border-radius: 50%; border: 2px solid white;"></div>`,
+                    iconSize: [15, 15]
+                });
+                const marker = L.marker(event.coords, { icon: markerIcon }).addTo(map);
+                marker.bindPopup(`<h3>${event.year} · ${event.name}</h3><p>${event.desc}</p>`);
+                marker.on('click', () => {
+                    infoBox.innerHTML = `<h3>${event.year} · ${event.name}</h3><p>${event.desc}</p>`;
+                });
+            });
+            markersAdded = true;
+        }
+
+        // 過濾事件
+        function filterEvents(filterType) {
+            currentFilter = filterType;
+            filterBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filterType));
+            document.querySelectorAll('.event-log-item').forEach(item => {
+                const itemType = item.dataset.eventType;
+                let isMatch = false;
+                if (filterType === "all") isMatch = true;
+                else if (filterType === "birth,death") isMatch = ["birth", "death"].includes(itemType);
+                else isMatch = itemType === filterType;
+                item.classList.toggle('hidden', !isMatch);
+            });
+        }
+
+        // 搜索事件
+        function searchEvents(keyword) {
+            keyword = keyword.toLowerCase().trim();
+            if (!keyword) { filterEvents(currentFilter); return; }
+            document.querySelectorAll('.event-log-item').forEach(item => {
+                const itemYear = item.dataset.eventYear.toLowerCase();
+                const itemName = item.dataset.eventName.toLowerCase();
+                const isMatch = itemYear.includes(keyword) || itemName.includes(keyword);
+                item.classList.toggle('hidden', !isMatch);
+            });
+        }
+
+        // 生成模擬報告（包含評分規則說明）
+        function generateReport() {
+            const scoreData = calculateScore();
+            let endingTitle = "";
+            let endingDesc = "";
+            if (perfectEndingAchieved()) {
+                endingTitle = "🏆 完美結局：統治歐洲大帝國";
+                endingDesc = "你憑藉幾乎無懈可擊的決策體系，擊敗所有反法同盟，建立橫跨歐亞的法蘭西大帝國，開啟百年和平時代，成為歐洲歷史上萬古流芳的傳奇帝王（S+難度達成）。";
+            } else if (isAlternativeEnding) {
+                endingTitle = "🔀 架空結局：另類人生軌跡";
+                endingDesc = "你的決策偏離了歷史軌跡，可能成為殖民地將領、游擊戰英雄或共和制維護者，雖未稱霸歐洲，但開創了屬於自己的獨特人生，同樣在歷史上留下濃墨重彩的一筆。";
+            } else {
+                endingTitle = "📜 歷史結局：滑鐵盧的終章";
+                endingDesc = "你的決策重現了歷史走向，滑鐵盧戰役的失敗標誌著歐洲霸權的終結，最終被流放聖赫勒拿島。但你在戰場上的軍事天賦與戰術創新，依舊被後世奉為經典。";
+            }
+
+            // 拼接決策記錄 HTML
+            let decisionHtml = "";
+            if (decisionImpactList.length === 0) {
+                decisionHtml = "<p>未產生決策記錄</p>";
+            } else {
+                decisionImpactList.forEach((item, index) => {
+                    const impactClass = item.impact > 0 ? "impact-positive" : item.impact < 0 ? "impact-negative" : "impact-neutral";
+                    decisionHtml += `<div class="decision-record-item">
+                        <strong>${index + 1}. ${item.year} · ${item.title}</strong>
+                        <span class="impact-tag ${impactClass}">${item.impact > 0 ? "+" : ""}${item.impact}</span>
+                        <p class="score-reason">${item.impactDesc}</p>
+                    </div>`;
+                });
+            }
+
+            // 拼接完整報告內容（添加評分規則說明）
+            reportContent.innerHTML = `
+                <div class="score-section">
+                    <div class="score-title">最終評分：${scoreData.finalScore}分 · 評級：${scoreData.finalGrade}</div>
+                    <div>${scoreData.reasonList.join("<br>")}</div>
+                </div>
+                <h4>${endingTitle}</h4>
+                <p>${endingDesc}</p>
+                <h4>決策影響記錄</h4>
+                ${decisionHtml}
+                <p style="margin-top:15px; color:#777; font-size:12px;">評分說明：依據決策對稱霸歐洲的影響力計分，失敗教訓與成功經驗均計入正向加分；S+/S級難度已提升，需累積更多高價值決策才能達成。</p>
+            `;
+            reportModal.style.display = "block";
+        }
+
+        // 啟動模擬按鈕事件
+        startBtn.addEventListener('click', () => {
+            if (isSimulationRunning) return;
+            isSimulationRunning = true;
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            clearEventLog();
+            currentEventIndex = 0;
+            addMarkers();
+            nextEvent();
+        });
+
+        // 暫停模擬按鈕事件
+        pauseBtn.addEventListener('click', () => {
+            isSimulationRunning = !isSimulationRunning;
+            pauseBtn.textContent = isSimulationRunning ? "暫停" : "繼續";
+            if (isSimulationRunning) {
+                nextEvent();
+            }
+        });
+
+        // 推進到下一個事件
+        function nextEvent() {
+            if (!isSimulationRunning || currentEventIndex >= totalEvents) {
+                endSimulation();
+                return;
+            }
+
+            const currentEvent = napoleonEvents[currentEventIndex];
+            // 更新地圖視角
+            map.flyTo(currentEvent.coords, 8);
+            // 更新資訊框
+            infoBox.innerHTML = `<h3>${currentEvent.year} · ${currentEvent.name}</h3><p>${currentEvent.desc}</p>`;
+            // 添加到事件日誌
+            addToEventLog(currentEvent);
+            // 更新進度
+            updateProgress();
+
+            // 判斷是否有決策
+            if (currentEvent.decision) {
+                showDecision(currentEvent);
+            } else {
+                // 無決策事件，延遲推進
+                setTimeout(() => {
+                    currentEventIndex++;
+                    nextEvent();
+                }, 2000);
+            }
+        }
+
+        // 顯示決策彈窗
+        function showDecision(event) {
+            const decision = event.decision;
+            decisionTitle.textContent = decision.title;
+            decisionDesc.textContent = decision.desc;
+            option1.textContent = decision.option1;
+            option2.textContent = decision.option2;
+            option3.textContent = decision.option3;
+
+            // 綁定決策按鈕事件
+            option1.onclick = () => handleDecision(event, 1);
+            option2.onclick = () => handleDecision(event, 2);
+            option3.onclick = () => handleDecision(event, 3);
+
+            decisionModal.style.display = "block";
+        }
+
+        // 處理決策選擇
+        function handleDecision(event, optionNum) {
+            decisionModal.style.display = "none";
+            const decision = event.decision;
+            const resultKey = `result${optionNum}`;
+            const impactKey = `impact${optionNum}`;
+            const impactDescKey = `impactDesc${optionNum}`;
+
+            // 判斷是否觸發架空結局
+            if (optionNum === 2 && (event.id === 2 || event.id === 3)) {
+                isAlternativeEnding = true;
+            }
+
+            // 添加決策記錄
+            addDecisionLog(
+                event.year,
+                decision.title,
+                decision[`option${optionNum}`],
+                decision[resultKey],
+                decision[impactKey],
+                decision[impactDescKey]
+            );
+
+            // 更新資訊框顯示決策結果
+            infoBox.innerHTML += `<p style="margin-top:10px; color:#27ae60;"><strong>決策結果：</strong>${decision[resultKey]}</p>`;
+
+            // 推進到下一個事件
+            setTimeout(() => {
+                currentEventIndex++;
+                nextEvent();
+            }, 2000);
+        }
+
+        // 更新進度顯示
+        function updateProgress() {
+            const progress = Math.round((currentEventIndex / totalEvents) * 100);
+            progressDisplay.textContent = `${progress}%`;
+        }
+
+        // 結束模擬
+        function endSimulation() {
+            isSimulationRunning = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = "暫停";
+            // 生成最終報告
+            generateReport();
+        }
+
+        // 事件篩選按鈕事件
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterEvents(btn.dataset.filter);
+            });
+        });
+
+        // 事件搜索框事件
+        eventSearchBox.addEventListener('input', () => {
+            searchEvents(eventSearchBox.value);
+        });
+
+        // 關閉報告按鈕事件
+        closeReportBtn.addEventListener('click', () => {
+            reportModal.style.display = "none";
+        });
+    </script>
+</body>
+</html>
